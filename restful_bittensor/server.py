@@ -7,7 +7,7 @@ from .set_weights import set_weights
 import uvicorn
 from loguru import logger
 
-print(bt.__version__)
+logger.info(bt.__version__)
 
 
 class SetWeightsRequest(BaseModel):
@@ -39,8 +39,6 @@ WALLET_HOTKEY = os.getenv("HOTKEY", "default")
 HOST = os.getenv("RESTFUL_SUBTENSOR_HOST", "0.0.0.0")
 PORT = int(os.getenv("RESTFUL_SUBTENSOR_PORT", 9100))
 
-# Setup logging
-logger.add("logs/restful_bittensor.log")
 
 app = FastAPI()
 
@@ -86,7 +84,3 @@ def start_server():
         host=HOST,
         port=PORT,
     )
-
-
-if __name__ == "__main__":
-    start_server()
