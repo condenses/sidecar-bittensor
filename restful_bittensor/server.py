@@ -3,6 +3,8 @@ import bittensor as bt
 from loguru import logger
 from pydantic_settings import BaseSettings
 import uvicorn
+import asyncio
+from typing import Optional
 
 from .metagraph import get_string_axons
 from .set_weights import set_weights
@@ -68,13 +70,49 @@ Current Settings:
     version="1.0.0",
 )
 
+# Global variable to store the background task
+SYNC_TASK: Optional[asyncio.Task] = None
+
 
 @app.on_event("startup")
 async def startup_event() -> None:
     """
     Operations to run during the startup event.
+    Initializes periodic metagraph sync.
     """
+    global SYNC_TASK
+
+    async def sync_metagraph():
+        while True:
+            try:
+                logger.info("Syncing metagraph...")
+                METAGRAPH.sync()
+                logger.info("Metagraph sync complete")
+                await asyncio.sleep(120)  # Sync every 2 minutes
+            except Exception as e:
+                logger.error(f"Error syncing metagraph: {e}")
+                await asyncio.sleep(
+                    30
+                )  # Wait 30 seconds before retrying if there's an error
+
+    SYNC_TASK = asyncio.create_task(sync_metagraph())
     logger.info("FastAPI application startup complete.")
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    """
+    Operations to run during the shutdown event.
+    Cancels the metagraph sync task.
+    """
+    global SYNC_TASK
+    if SYNC_TASK:
+        SYNC_TASK.cancel()
+        try:
+            await SYNC_TASK
+        except asyncio.CancelledError:
+            pass
+    logger.info("FastAPI application shutdown complete.")
 
 
 @app.post(
