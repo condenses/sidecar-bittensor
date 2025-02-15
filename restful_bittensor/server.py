@@ -1,72 +1,161 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
-import os
+from fastapi import FastAPI, HTTPException
 import bittensor as bt
+from loguru import logger
+from pydantic_settings import BaseSettings
+import uvicorn
+
 from .metagraph import get_string_axons
 from .set_weights import set_weights
-import uvicorn
-from loguru import logger
-
-logger.info(bt.__version__)
-
-
-class SetWeightsRequest(BaseModel):
-    uids: list[int]
-    weights: list[float]
-    netuid: int
-    version: int = 1
-
-
-class SetWeightsResponse(BaseModel):
-    result: bool
-    msg: str
-
-
-class AxonsRequest(BaseModel):
-    uids: list[int]
-
-
-class AxonsResponse(BaseModel):
-    axons: list[str]
-
-
-# Initialize environment variables
-NETWORK = os.getenv("NETWORK", "finney")
-NETUID = int(os.getenv("NETUID", 47))
-WALLET_NAME = os.getenv("WALLET_NAME", "default")
-WALLET_PATH = os.getenv("WALLET_PATH", "~/.bittensor/wallets")
-WALLET_HOTKEY = os.getenv("HOTKEY", "default")
-HOST = os.getenv("RESTFUL_SUBTENSOR_HOST", "0.0.0.0")
-PORT = int(os.getenv("RESTFUL_SUBTENSOR_PORT", 9100))
-
-
-app = FastAPI()
-
-# Initialize with global vars and log summary
-SUBTENSOR = bt.Subtensor(network=NETWORK)
-METAGRAPH = SUBTENSOR.metagraph(netuid=NETUID)
-WALLET = bt.wallet(
-    name=WALLET_NAME,
-    path=WALLET_PATH,
-    hotkey=WALLET_HOTKEY,
+from .schemas import (
+    SetWeightsRequest,
+    SetWeightsResponse,
+    LastUpdateRequest,
+    LastUpdateResponse,
+    NormalizedStakeResponse,
+    ValidatorPermitResponse,
+    AxonsRequest,
+    AxonsResponse,
 )
 
-logger.info(f"Server initialized with:")
-logger.info(f"Network: {NETWORK}")
-logger.info(f"Netuid: {NETUID}")
-logger.info(f"Wallet: {WALLET_NAME}")
-logger.info(f"Hotkey: {WALLET_HOTKEY}")
-logger.info(f"Host: {HOST}")
-logger.info(f"Port: {PORT}")
+
+class Settings(BaseSettings):
+    network: str = "finney"
+    netuid: int = 47
+    wallet_name: str = "default"
+    wallet_path: str = "~/.bittensor/wallets"
+    hotkey: str = "default"
+    host: str = "0.0.0.0"
+    port: int = 9100
+
+    class Config:
+        # Optionally, you can use a .env file for configuration
+        env_file = ".env"
 
 
-@app.post("/api/metagraph/axons")
-async def api_get_axons(request: AxonsRequest):
-    return AxonsResponse(axons=get_string_axons(METAGRAPH, request.uids))
+# Load settings from environment variables (with defaults as fallback)
+settings = Settings()
+
+logger.info("Initializing server with the following settings:")
+logger.info(f"Network: {settings.network}")
+logger.info(f"NetUID: {settings.netuid}")
+logger.info(f"Wallet: {settings.wallet_name}")
+logger.info(f"Hotkey: {settings.hotkey}")
+logger.info(f"Host: {settings.host}")
+logger.info(f"Port: {settings.port}")
+
+# Initialize bittensor objects using the settings
+SUBTENSOR = bt.Subtensor(network=settings.network)
+METAGRAPH = SUBTENSOR.metagraph(netuid=settings.netuid)
+WALLET = bt.wallet(
+    name=settings.wallet_name,
+    path=settings.wallet_path,
+    hotkey=settings.hotkey,
+)
+
+# Create FastAPI app instance with custom metadata
+app = FastAPI(
+    title="Restful Bittensor API",
+    description=f"""A RESTful API for interacting with the Bittensor metagraph and managing weight settings.
+
+Current Settings:
+- Network: {settings.network}
+- NetUID: {settings.netuid}
+- Wallet: {settings.wallet_name}
+- Hotkey: {settings.hotkey}
+- Host: {settings.host}
+- Port: {settings.port}
+""",
+    version="1.0.0",
+)
 
 
-@app.post("/api/set_weights")
-async def api_set_weights(request: SetWeightsRequest):
+@app.on_event("startup")
+async def startup_event() -> None:
+    """
+    Operations to run during the startup event.
+    """
+    logger.info("FastAPI application startup complete.")
+
+
+@app.post(
+    "/api/metagraph/axons",
+    response_model=AxonsResponse,
+    tags=["Metagraph"],
+    summary="Retrieve Axons",
+)
+async def get_axons(request: AxonsRequest) -> AxonsResponse:
+    """
+    Retrieve axons (string representations) for the provided uids.
+    """
+    axons = get_string_axons(METAGRAPH, request.uids)
+    return AxonsResponse(axons=axons)
+
+
+@app.post(
+    "/api/metagraph/last-update",
+    response_model=LastUpdateResponse,
+    tags=["Metagraph"],
+    summary="Get Last Updates",
+)
+async def get_last_update(request: LastUpdateRequest) -> LastUpdateResponse:
+    """
+    Retrieve the last update timestamps for the provided uids.
+    """
+    try:
+        last_updates = METAGRAPH.last_update
+        # Filter only uids in the request; raises KeyError if uid not found
+        updates = [last_updates[uid] for uid in request.uids]
+    except KeyError as e:
+        logger.error(f"UID not found in metagraph: {e}")
+        raise HTTPException(status_code=404, detail=f"UID not found: {e}")
+    return LastUpdateResponse(last_update=updates)
+
+
+@app.post(
+    "/api/metagraph/normalized-stake",
+    response_model=NormalizedStakeResponse,
+    tags=["Metagraph"],
+    summary="Normalized Stake",
+)
+async def get_normalized_stake() -> NormalizedStakeResponse:
+    """
+    Retrieve the normalized stakes across all nodes.
+    """
+    stakes = METAGRAPH.S
+    total_stake = sum(stakes)
+    if total_stake == 0:
+        logger.error("Total stake is zero, cannot calculate normalized stake.")
+        raise HTTPException(
+            status_code=400, detail="Total stake is zero; cannot normalize stakes."
+        )
+    normalized = [stake / total_stake for stake in stakes]
+    return NormalizedStakeResponse(normalized_stake=normalized)
+
+
+@app.post(
+    "/api/metagraph/validator-permit",
+    response_model=ValidatorPermitResponse,
+    tags=["Metagraph"],
+    summary="Validator Permits",
+)
+async def get_validator_permit() -> ValidatorPermitResponse:
+    """
+    Retrieve the validator permits from the metagraph.
+    """
+    v_permits = METAGRAPH.v_permits
+    return ValidatorPermitResponse(v_permits=v_permits)
+
+
+@app.post(
+    "/api/set-weights",
+    response_model=SetWeightsResponse,
+    tags=["Weights"],
+    summary="Set Weights",
+)
+async def set_weights_endpoint(request: SetWeightsRequest) -> SetWeightsResponse:
+    """
+    Set the weights for specified nodes in the network.
+    """
     result, msg = set_weights(
         subtensor=SUBTENSOR,
         wallet=WALLET,
@@ -78,9 +167,17 @@ async def api_set_weights(request: SetWeightsRequest):
     return SetWeightsResponse(result=result, msg=msg)
 
 
-def start_server():
+def start_server() -> None:
+    """
+    Starts the FastAPI server using uvicorn.
+    """
     uvicorn.run(
-        app,
-        host=HOST,
-        port=PORT,
+        "restful_bittensor.server:app",
+        host=settings.host,
+        port=settings.port,
+        reload=False,  # Change to True for development if needed.
     )
+
+
+if __name__ == "__main__":
+    start_server()
