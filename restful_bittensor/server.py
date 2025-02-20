@@ -27,12 +27,13 @@ class Settings(BaseSettings):
     wallet_name: str = "default"
     wallet_path: str = "~/.bittensor/wallets"
     hotkey: str = "default"
-    host: str = "0.0.0.0"
+    host: str = "0.0.0.0" 
     port: int = 9100
 
     class Config:
         # Optionally, you can use a .env file for configuration
         env_file = ".env"
+        extra = "allow"
 
 
 # Load settings from environment variables (with defaults as fallback)
