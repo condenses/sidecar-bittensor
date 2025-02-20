@@ -18,6 +18,7 @@ from .schemas import (
     AxonsRequest,
     AxonsResponse,
 )
+import time
 
 
 class Settings(BaseSettings):
@@ -53,7 +54,9 @@ WALLET = bt.wallet(
     path=settings.wallet_path,
     hotkey=settings.hotkey,
 )
-
+DENDRITE = bt.Dendrite(
+    wallet=WALLET,
+)
 # Create FastAPI app instance with custom metadata
 app = FastAPI(
     title="Restful Bittensor API",
@@ -203,6 +206,22 @@ async def set_weights_endpoint(request: SetWeightsRequest) -> SetWeightsResponse
         version=request.version,
     )
     return SetWeightsResponse(result=result, msg=msg)
+
+
+@app.get("/api/signature-headers")
+def get_signature_headers() -> dict:
+    """
+    Get the signature headers for the validator.
+    """
+    nonce = str(time.time_ns())
+    signature = f"0x{DENDRITE.keypair.sign(nonce).hex()}"
+    return {
+        "validator-hotkey": WALLET.hotkey,
+        "signature": signature,
+        "nonce": nonce,
+        "netuid": settings.netuid,
+        "Content-Type": "application/json",
+    }
 
 
 def start_server() -> None:
