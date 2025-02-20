@@ -38,13 +38,20 @@ class Settings(BaseSettings):
 # Load settings from environment variables (with defaults as fallback)
 settings = Settings()
 
-logger.info("Initializing server with the following settings:")
-logger.info(f"Network: {settings.network}")
-logger.info(f"NetUID: {settings.netuid}")
-logger.info(f"Wallet: {settings.wallet_name}")
-logger.info(f"Hotkey: {settings.hotkey}")
-logger.info(f"Host: {settings.host}")
-logger.info(f"Port: {settings.port}")
+from rich.console import Console
+from rich.panel import Panel
+
+console = Console()
+settings_dict = settings.model_dump()
+
+for section, values in settings_dict.items():
+    console.print(
+        Panel.fit(
+            str(values),
+            title=f"[bold blue]{section}[/bold blue]",
+            border_style="green",
+        )
+    )
 
 # Initialize bittensor objects using the settings
 SUBTENSOR = bt.Subtensor(network=settings.network)
