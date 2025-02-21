@@ -171,17 +171,23 @@ async def get_normalized_stake() -> NormalizedStakeResponse:
     """
     Retrieve the normalized stakes across all nodes.
     """
-    logger.info(f"getting normalized stake")
-    stakes = METAGRAPH.S
-    total_stake = sum(stakes)
-    if total_stake == 0:
-        logger.error("Total stake is zero, cannot calculate normalized stake.")
+    try:
+        logger.info(f"getting normalized stake")
+        stakes = METAGRAPH.S
+        total_stake = sum(stakes)
+        if total_stake == 0:
+            logger.error("Total stake is zero, cannot calculate normalized stake.")
+            raise HTTPException(
+                status_code=400, detail="Total stake is zero; cannot normalize stakes."
+            )
+        neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
+        normalized_stake = stakes[neuron_uid] / total_stake
+        logger.info(f"normalized stake: {normalized_stake}")
+    except Exception as e:
+        logger.error(f"Error getting normalized stake: {e}")
         raise HTTPException(
-            status_code=400, detail="Total stake is zero; cannot normalize stakes."
+            status_code=500, detail=f"Error getting normalized stake: {e}"
         )
-    neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
-    normalized_stake = o[neuron_uid] / total_stake
-    logger.info(f"normalized stake: {normalized_stake}")
     return NormalizedStakeResponse(normalized_stake=normalized_stake)
 
 
