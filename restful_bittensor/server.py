@@ -171,6 +171,7 @@ async def get_normalized_stake() -> NormalizedStakeResponse:
     """
     Retrieve the normalized stakes across all nodes.
     """
+    logger.info(f"getting normalized stake")
     stakes = METAGRAPH.S
     total_stake = sum(stakes)
     if total_stake == 0:
@@ -179,7 +180,8 @@ async def get_normalized_stake() -> NormalizedStakeResponse:
             status_code=400, detail="Total stake is zero; cannot normalize stakes."
         )
     neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
-    normalized_stake = stakes[neuron_uid] / total_stake
+    normalized_stake = o[neuron_uid] / total_stake
+    logger.info(f"normalized stake: {normalized_stake}")
     return NormalizedStakeResponse(normalized_stake=normalized_stake)
 
 
