@@ -153,7 +153,7 @@ async def get_last_update() -> LastUpdateResponse:
     Retrieve the last update timestamps for the provided uids.
     """
     try:
-        neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey)
+        neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
         last_update = METAGRAPH.last_update[neuron_uid]
     except KeyError as e:
         logger.error(f"UID not found in metagraph: {e}")
@@ -161,7 +161,7 @@ async def get_last_update() -> LastUpdateResponse:
     return LastUpdateResponse(last_update=last_update)
 
 
-@app.post(
+@app.get(
     "/api/metagraph/normalized-stake",
     response_model=NormalizedStakeResponse,
     tags=["Metagraph"],
@@ -178,7 +178,7 @@ async def get_normalized_stake() -> NormalizedStakeResponse:
         raise HTTPException(
             status_code=400, detail="Total stake is zero; cannot normalize stakes."
         )
-    neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey)
+    neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
     normalized_stake = stakes[neuron_uid] / total_stake
     return NormalizedStakeResponse(normalized_stake=normalized_stake)
 
@@ -207,7 +207,7 @@ async def set_weights_endpoint(request: SetWeightsRequest) -> SetWeightsResponse
     """
     Set the weights for specified nodes in the network.
     """
-    NEURON_UID = METAGRAPH.hotkeys.index(WALLET.hotkey)
+    NEURON_UID = METAGRAPH.hotkeys.index(WALLET.hotkey.ss58_address)
     current_block = SUBTENSOR.get_current_block()
     LAST_UPDATE = METAGRAPH.last_update[NEURON_UID]
     if current_block - LAST_UPDATE > TEMPO:

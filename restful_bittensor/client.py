@@ -16,11 +16,11 @@ class SetWeightsResponse(BaseModel):
 
 
 class LastUpdateResponse(BaseModel):
-    last_update: List[int]
+    last_update: int
 
 
 class NormalizedStakeResponse(BaseModel):
-    normalized_stake: List[float]
+    normalized_stake: float
 
 
 class ValidatorPermitResponse(BaseModel):
