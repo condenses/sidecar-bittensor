@@ -43,15 +43,13 @@ class RestfulBittensor:
         response.raise_for_status()
         return AxonsResponse(**response.json()).axons
 
-    def get_last_update(self, uids: List[int]) -> List[int]:
-        response = self.client.post(
-            f"{self.base_url}/api/metagraph/last-update", json={"uids": uids}
-        )
+    def get_last_update(self) -> int:
+        response = self.client.get(f"{self.base_url}/api/metagraph/last-update")
         response.raise_for_status()
         return LastUpdateResponse(**response.json()).last_update
 
-    def get_normalized_stake(self) -> List[float]:
-        response = self.client.post(f"{self.base_url}/api/metagraph/normalized-stake")
+    def get_normalized_stake(self) -> float:
+        response = self.client.get(f"{self.base_url}/api/metagraph/normalized-stake")
         response.raise_for_status()
         return NormalizedStakeResponse(**response.json()).normalized_stake
 
@@ -95,14 +93,16 @@ class AsyncRestfulBittensor:
         response.raise_for_status()
         return AxonsResponse(**response.json()).axons
 
-    async def get_last_update(self) -> int:
-        response = await self.client.get(f"{self.base_url}/api/metagraph/last-update")
+    async def get_last_update(self, timeout: int = 10) -> int:
+        response = await self.client.get(
+            f"{self.base_url}/api/metagraph/last-update", timeout=timeout
+        )
         response.raise_for_status()
         return LastUpdateResponse(**response.json()).last_update
 
-    async def get_normalized_stake(self) -> List[float]:
-        response = await self.client.post(
-            f"{self.base_url}/api/metagraph/normalized-stake"
+    async def get_normalized_stake(self, timeout: int = 10) -> float:
+        response = await self.client.get(
+            f"{self.base_url}/api/metagraph/normalized-stake", timeout=timeout
         )
         response.raise_for_status()
         return NormalizedStakeResponse(**response.json()).normalized_stake
