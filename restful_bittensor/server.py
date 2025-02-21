@@ -11,7 +11,6 @@ from .set_weights import set_weights
 from .schemas import (
     SetWeightsRequest,
     SetWeightsResponse,
-    LastUpdateRequest,
     LastUpdateResponse,
     NormalizedStakeResponse,
     ValidatorPermitResponse,
@@ -19,6 +18,7 @@ from .schemas import (
     AxonsResponse,
 )
 import time
+from starlette.concurrency import run_in_threadpool
 
 
 class Settings(BaseSettings):
@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     wallet_name: str = "default"
     wallet_path: str = "~/.bittensor/wallets"
     hotkey: str = "default"
-    host: str = "0.0.0.0" 
+    host: str = "0.0.0.0"
     port: int = 9100
 
     class Config:
@@ -65,6 +65,8 @@ WALLET = bt.wallet(
 DENDRITE = bt.Dendrite(
     wallet=WALLET,
 )
+LAST_UPDATE = 0
+TEMPO = 360
 # Create FastAPI app instance with custom metadata
 app = FastAPI(
     title="Restful Bittensor API",
@@ -140,24 +142,23 @@ async def get_axons(request: AxonsRequest) -> AxonsResponse:
     return AxonsResponse(axons=axons)
 
 
-@app.post(
+@app.get(
     "/api/metagraph/last-update",
     response_model=LastUpdateResponse,
     tags=["Metagraph"],
     summary="Get Last Updates",
 )
-async def get_last_update(request: LastUpdateRequest) -> LastUpdateResponse:
+async def get_last_update() -> LastUpdateResponse:
     """
     Retrieve the last update timestamps for the provided uids.
     """
     try:
-        last_updates = METAGRAPH.last_update
-        # Filter only uids in the request; raises KeyError if uid not found
-        updates = [last_updates[uid] for uid in request.uids]
+        neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey)
+        last_update = METAGRAPH.last_update[neuron_uid]
     except KeyError as e:
         logger.error(f"UID not found in metagraph: {e}")
         raise HTTPException(status_code=404, detail=f"UID not found: {e}")
-    return LastUpdateResponse(last_update=updates)
+    return LastUpdateResponse(last_update=last_update)
 
 
 @app.post(
@@ -177,8 +178,9 @@ async def get_normalized_stake() -> NormalizedStakeResponse:
         raise HTTPException(
             status_code=400, detail="Total stake is zero; cannot normalize stakes."
         )
-    normalized = [stake / total_stake for stake in stakes]
-    return NormalizedStakeResponse(normalized_stake=normalized)
+    neuron_uid = METAGRAPH.hotkeys.index(WALLET.hotkey)
+    normalized_stake = stakes[neuron_uid] / total_stake
+    return NormalizedStakeResponse(normalized_stake=normalized_stake)
 
 
 @app.post(
@@ -205,14 +207,24 @@ async def set_weights_endpoint(request: SetWeightsRequest) -> SetWeightsResponse
     """
     Set the weights for specified nodes in the network.
     """
-    result, msg = set_weights(
-        subtensor=SUBTENSOR,
-        wallet=WALLET,
-        uids=request.uids,
-        weights=request.weights,
-        netuid=request.netuid,
-        version=request.version,
-    )
+    NEURON_UID = METAGRAPH.hotkeys.index(WALLET.hotkey)
+    current_block = SUBTENSOR.get_current_block()
+    LAST_UPDATE = METAGRAPH.last_update[NEURON_UID]
+    if current_block - LAST_UPDATE > TEMPO:
+        result, msg = await run_in_threadpool(
+            set_weights,
+            subtensor=SUBTENSOR,
+            wallet=WALLET,
+            uids=request.uids,
+            weights=request.weights,
+            netuid=request.netuid,
+            version=request.version,
+        )
+        if result:
+            await run_in_threadpool(METAGRAPH.sync)
+    else:
+        result = False
+        msg = f"Not enough time has passed to set weights. {TEMPO - (current_block - LAST_UPDATE)} blocks remaining."
     return SetWeightsResponse(result=result, msg=msg)
 
 

@@ -14,11 +14,7 @@ class SetWeightsResponse(BaseModel):
 
 
 class LastUpdateResponse(BaseModel):
-    last_update: list[int]
-
-
-class LastUpdateRequest(BaseModel):
-    uids: list[int]
+    last_update: int
 
 
 class NormalizedStakeResponse(BaseModel):

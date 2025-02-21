@@ -95,10 +95,8 @@ class AsyncRestfulBittensor:
         response.raise_for_status()
         return AxonsResponse(**response.json()).axons
 
-    async def get_last_update(self, uids: List[int]) -> List[int]:
-        response = await self.client.post(
-            f"{self.base_url}/api/metagraph/last-update", json={"uids": uids}
-        )
+    async def get_last_update(self) -> int:
+        response = await self.client.get(f"{self.base_url}/api/metagraph/last-update")
         response.raise_for_status()
         return LastUpdateResponse(**response.json()).last_update
 
