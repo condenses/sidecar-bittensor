@@ -18,7 +18,7 @@ class LastUpdateResponse(BaseModel):
 
 
 class NormalizedStakeResponse(BaseModel):
-    normalized_stake: list[float]
+    normalized_stake: float
 
 
 class ValidatorPermitResponse(BaseModel):
