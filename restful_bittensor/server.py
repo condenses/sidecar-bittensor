@@ -26,14 +26,14 @@ class Settings(BaseSettings):
     netuid: int = 47
     wallet_name: str = "default"
     wallet_path: str = "~/.bittensor/wallets"
-    hotkey: str = "default"
+    wallet_hotkey: str = "default"
     host: str = "0.0.0.0"
     port: int = 9100
 
     class Config:
         # Optionally, you can use a .env file for configuration
         env_file = ".env"
-        extra = "allow"
+        extra = "ignore"
 
 
 # Load settings from environment variables (with defaults as fallback)
@@ -60,7 +60,7 @@ METAGRAPH = SUBTENSOR.metagraph(netuid=settings.netuid)
 WALLET = bt.wallet(
     name=settings.wallet_name,
     path=settings.wallet_path,
-    hotkey=settings.hotkey,
+    hotkey=settings.wallet_hotkey,
 )
 DENDRITE = bt.Dendrite(
     wallet=WALLET,
@@ -76,7 +76,7 @@ Current Settings:
 - Network: {settings.network}
 - NetUID: {settings.netuid}
 - Wallet: {settings.wallet_name}
-- Hotkey: {settings.hotkey}
+- Hotkey: {settings.wallet_hotkey}
 - Host: {settings.host}
 - Port: {settings.port}
 """,
