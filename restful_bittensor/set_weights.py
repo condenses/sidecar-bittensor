@@ -41,7 +41,7 @@ def set_weights(
             netuid=netuid,
             uids=processed_weight_uids,
             weights=processed_weights,
-            version=version,
+            version_key=version,
             wallet=wallet,
         )
         logger.info(f"result:{result}|msg:{msg}")
