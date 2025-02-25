@@ -21,8 +21,8 @@ def set_weights(
     )
     logger.info(f"\n{table}")
     try:
-        weights = np.array(weights)
-        uids = np.array(uids)
+        uids = np.array(uids, dtype=np.int64)
+        weights = np.array(weights, dtype=np.float32)
         (
             processed_weight_uids,
             processed_weights,
@@ -31,7 +31,6 @@ def set_weights(
             weights=weights,
             netuid=netuid,
             subtensor=subtensor,
-            metagraph=subtensor.metagraph,
         )
     except Exception as e:
         logger.error(f"Error processing weights: {e}")
