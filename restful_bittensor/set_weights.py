@@ -1,6 +1,7 @@
 import bittensor as bt
 from loguru import logger
 from tabulate import tabulate
+import numpy as np
 
 
 def set_weights(
@@ -20,6 +21,8 @@ def set_weights(
     )
     logger.info(f"\n{table}")
     try:
+        weights = np.array(weights)
+        uids = np.array(uids)
         (
             processed_weight_uids,
             processed_weights,
