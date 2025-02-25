@@ -19,23 +19,31 @@ def set_weights(
         preview_data, headers=["UID", "Weight"], tablefmt="grid", floatfmt=".4f"
     )
     logger.info(f"\n{table}")
-    (
-        processed_weight_uids,
-        processed_weights,
-    ) = bt.utils.weight_utils.process_weights_for_netuid(
-        uids=uids,
-        weights=weights,
-        netuid=netuid,
-        subtensor=subtensor,
-        metagraph=subtensor.metagraph,
-    )
+    try:
+        (
+            processed_weight_uids,
+            processed_weights,
+        ) = bt.utils.weight_utils.process_weights_for_netuid(
+            uids=uids,
+            weights=weights,
+            netuid=netuid,
+            subtensor=subtensor,
+            metagraph=subtensor.metagraph,
+        )
+    except Exception as e:
+        logger.error(f"Error processing weights: {e}")
+        return False, str(e)
 
-    result, msg = subtensor.set_weights(
-        netuid=netuid,
-        uids=processed_weight_uids,
-        weights=processed_weights,
-        version=version,
-        wallet=wallet,
-    )
-    logger.info(f"result:{result}|msg:{msg}")
-    return result, msg
+    try:
+        result, msg = subtensor.set_weights(
+            netuid=netuid,
+            uids=processed_weight_uids,
+            weights=processed_weights,
+            version=version,
+            wallet=wallet,
+        )
+        logger.info(f"result:{result}|msg:{msg}")
+        return result, msg
+    except Exception as e:
+        logger.error(f"Error setting weights: {e}")
+        return False, str(e)
