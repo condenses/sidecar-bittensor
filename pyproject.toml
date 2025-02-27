@@ -1,12 +1,12 @@
 [tool.hatch.build.targets.wheel]
-packages = ["restful_bittensor"]
+packages = ["sidecar_bittensor"]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "restful-bittensor"
+name = "sidecar-bittensor"
 version = "0.1.0"
 description = "RESTful API wrapper for Bittensor network operations"
 readme = "README.md"
@@ -27,9 +27,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/restful-bittensor"
-Repository = "https://github.com/yourusername/restful-bittensor.git"
+Homepage = "https://github.com/yourusername/sidecar-bittensor"
+Repository = "https://github.com/yourusername/sidecar-bittensor.git"
 
 
 [project.scripts]
-rb-start-server = "restful_bittensor.server:start_server"
+sb-start-server = "sidecar_bittensor.server:start_server"

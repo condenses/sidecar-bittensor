@@ -20,15 +20,13 @@ export NETUID=47
 export WALLET_NAME=default
 export WALLET_PATH=~/.bittensor/wallets
 export WALLET_HOTKEY=default
-export RESTFUL_SUBTENSOR_HOST=0.0.0.0
-export RESTFUL_SUBTENSOR_PORT=9100
 ```
 
 ## Usage
 
 ### Server
 ```bash
-rb-start-server
+uvicorn sidecar_bittensor.server:app --host 0.0.0.0 --port 9103
 ```
 
 ### Client

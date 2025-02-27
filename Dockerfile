@@ -25,4 +25,4 @@ ENV PATH=/app/.venv/bin:$PATH
 EXPOSE 9100
 
 # Command to run the server using the entrypoint defined in pyproject.toml
-CMD ["rb-start-server"] 
+CMD ["uvicorn", "sidecar_bittensor.server:app", "--host", "0.0.0.0", "--port", "9103"] 
