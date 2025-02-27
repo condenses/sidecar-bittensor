@@ -11,7 +11,7 @@ WORKDIR /app
 # Copy project configuration files and source code
 COPY pyproject.toml .
 COPY README.md .
-COPY restful_bittensor ./restful_bittensor
+COPY sidecar_bittensor ./sidecar_bittensor
 
 # Upgrade pip, install Hatch build tool, and install the project as a package.
 RUN pip install --upgrade pip && \
