@@ -5,7 +5,7 @@ import bittensor
 def get_string_axons(metagraph, uids: list[int] = []) -> list[str]:
     axons: list[bittensor.Axon] = metagraph.axons
     if uids:
-        axons = [axons[uid] for uid in uids]
+        axons = [axons[uid] for uid in uids if uid in metagraph.uids]
     string_axons = [axon.to_string() for axon in axons]
     return string_axons
 
