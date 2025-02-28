@@ -140,8 +140,8 @@ async def get_axons(request: AxonsRequest) -> AxonsResponse:
     """
     logger.info(f"getting axons for {request.uids}")
     try:
-        axons = get_string_axons(METAGRAPH, request.uids)
-        return AxonsResponse(axons=axons)
+        uids, axons = get_string_axons(METAGRAPH, request.uids)
+        return AxonsResponse(uids=uids, axons=axons)
     except Exception as e:
         logger.error(f"Error getting axons: {e}")
         raise HTTPException(status_code=500, detail=f"Error getting axons: {e}")
