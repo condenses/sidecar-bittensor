@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional,Dict
 import httpx
 from pydantic import BaseModel
 
@@ -30,6 +30,22 @@ class ValidatorPermitResponse(BaseModel):
 class AxonsResponse(BaseModel):
     axons: List[str]
 
+
+class RateLimitRequest(BaseModel):
+    min_stake: float
+
+
+class RateLimitResponse(BaseModel):
+    rate_limits: Dict[int, int]
+
+
+class MinerInfoRequest(BaseModel):
+    ss58_address: str
+
+
+class MinerInfoResponse(BaseModel):
+    uid: int
+    incentive: float
 
 class RestfulBittensor:
     def __init__(self, base_url: str = "http://localhost:9100"):
@@ -73,6 +89,24 @@ class RestfulBittensor:
         response.raise_for_status()
         result = SetWeightsResponse(**response.json())
         return result.result, result.msg
+
+    def get_rate_limit(self, min_stake: float) -> Dict[int, int]:
+        response = self.client.post(
+            f"{self.base_url}/api/build-rate-limit",
+            json={"min_stake": min_stake}
+        )
+        response.raise_for_status()
+        data = RateLimitResponse(**response.json())
+        return data.rate_limits
+
+    def get_miner_info(self, ss58_address: str) -> Tuple[int, float]:
+        response = self.client.post(
+            f"{self.base_url}/api/address-info",
+            json={"ss58_address": ss58_address}
+        )
+        response.raise_for_status()
+        data = MinerInfoResponse(**response.json())
+        return data.uid, data.incentive
 
     def __enter__(self):
         return self
@@ -129,6 +163,24 @@ class AsyncRestfulBittensor:
         response.raise_for_status()
         result = SetWeightsResponse(**response.json())
         return result.result, result.msg
+
+    async def get_rate_limit(self, min_stake: float) -> Dict[int, int]:
+        response = await self.client.post(
+            f"{self.base_url}/api/build-rate-limit",
+            json={"min_stake": min_stake}
+        )
+        response.raise_for_status()
+        data = RateLimitResponse(**response.json())
+        return data.rate_limits
+
+    async def get_miner_info(self, ss58_address: str) -> Tuple[int, float]:
+        response = await self.client.post(
+            f"{self.base_url}/api/address-info",
+            json={"ss58_address": ss58_address}
+        )
+        response.raise_for_status()
+        data = MinerInfoResponse(**response.json())
+        return data.uid, data.incentive
 
     async def __aenter__(self):
         return self

@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-
+from typing import  Dict
 
 class SetWeightsRequest(BaseModel):
     uids: list[int]
@@ -31,3 +31,16 @@ class AxonsRequest(BaseModel):
 
 class AxonsResponse(BaseModel):
     axons: list[str]
+
+class RateLimitResponse(BaseModel):
+    rate_limits: Dict[int, int]
+
+class RateLimitRequest(BaseModel):
+    min_stake: float
+
+class MinerInfoRequest(BaseModel):
+    ss58_address: str
+
+class MinerInfoResponse(BaseModel):
+    uid: int
+    incentive: float
