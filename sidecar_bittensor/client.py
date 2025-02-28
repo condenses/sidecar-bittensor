@@ -28,8 +28,8 @@ class ValidatorPermitResponse(BaseModel):
 
 
 class AxonsResponse(BaseModel):
+    uids: List[int]
     axons: List[str]
-
 
 class RestfulBittensor:
     def __init__(self, base_url: str = "http://localhost:9100"):
