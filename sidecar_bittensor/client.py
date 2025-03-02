@@ -101,7 +101,7 @@ class RestfulBittensor:
 
     def get_miner_info(self, ss58_address: str) -> Tuple[int, float]:
         response = self.client.post(
-            f"{self.base_url}/api/address-info",
+            f"{self.base_url}/api/miner-info",
             json={"ss58_address": ss58_address}
         )
         response.raise_for_status()
