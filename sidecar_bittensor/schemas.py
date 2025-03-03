@@ -30,6 +30,7 @@ class AxonsRequest(BaseModel):
 
 
 class AxonsResponse(BaseModel):
+    uids: list[int]
     axons: list[str]
 
 class RateLimitResponse(BaseModel):

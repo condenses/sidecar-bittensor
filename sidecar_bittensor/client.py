@@ -28,6 +28,7 @@ class ValidatorPermitResponse(BaseModel):
 
 
 class AxonsResponse(BaseModel):
+    uids: List[int]
     axons: List[str]
 
 
@@ -120,12 +121,12 @@ class AsyncRestfulBittensor:
         self.base_url = base_url.rstrip("/")
         self.client = httpx.AsyncClient()
 
-    async def get_axons(self, uids: List[int]) -> List[str]:
+    async def get_axons(self, uids: List[int]) -> Tuple[List[int], List[str]]:
         response = await self.client.post(
             f"{self.base_url}/api/metagraph/axons", json={"uids": uids}
         )
-        response.raise_for_status()
-        return AxonsResponse(**response.json()).axons
+        data = response.json()
+        return data["uids"], data["axons"]
 
     async def get_last_update(self, timeout: int = 10) -> int:
         response = await self.client.get(
