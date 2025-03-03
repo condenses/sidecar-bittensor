@@ -270,7 +270,7 @@ async def build_rate_limit_endpoint(request: RateLimitRequest) -> RateLimitRespo
         S = METAGRAPH.S
         whitelist_uids = [i for i in range(len(S)) if S[i] > request.min_stake]
         
-        rpe = 256
+        rpe = 512
 
         total_stake = sum(S[uid] for uid in whitelist_uids)
         rate_limits = {
