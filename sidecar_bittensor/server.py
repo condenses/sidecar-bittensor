@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 import uvicorn
 import asyncio
 from typing import Optional
-
+import pandas as pd 
 from .metagraph import get_string_axons
 from .set_weights import set_weights
 from .schemas import (
@@ -16,6 +16,10 @@ from .schemas import (
     ValidatorPermitResponse,
     AxonsRequest,
     AxonsResponse,
+    RateLimitResponse,
+    RateLimitRequest,
+    MinerInfoRequest,
+    MinerInfoResponse,
 )
 import time
 from starlette.concurrency import run_in_threadpool
@@ -256,6 +260,63 @@ def get_signature_headers() -> dict:
         "Content-Type": "application/json",
     }
 
+@app.post(
+    "/api/build-rate-limit",
+    response_model=RateLimitResponse,
+    tags=["RateLimit"],
+    summary="Build Rate Limit",
+)
+
+async def build_rate_limit_endpoint(request: RateLimitRequest) -> RateLimitResponse:
+    """
+    Compute rate limits for metagraph nodes based on stake and tier configuration.
+    """
+    try:
+        S = METAGRAPH.S
+        whitelist_uids = [i for i in range(len(S)) if S[i] > request.min_stake]
+        
+        rpe = 512
+
+        total_stake = sum(S[uid] for uid in whitelist_uids)
+        rate_limits = {
+            uid: max(int(rpe * (S[uid] / total_stake) if total_stake > 0 else 0), 10)
+            for uid in whitelist_uids
+        }
+        
+        for uid in range(len(S)):
+            if uid not in whitelist_uids:
+                rate_limits[uid] = 0
+        
+        df = pd.DataFrame({
+            "uids": whitelist_uids,
+            "rate_limits": [rate_limits[uid] for uid in whitelist_uids],
+        })
+        logger.info(f"Rate limits computed:\n{df.to_markdown()}")
+        
+        return RateLimitResponse(rate_limits=rate_limits)
+    except Exception as e:
+        logger.error(f"Error computing rate limits: {e}")
+        raise HTTPException(status_code=500, detail=f"Error computing rate limits: {e}")
+
+@app.post(
+    "/api/miner-info",
+    response_model=MinerInfoResponse,
+    tags=["Info"],
+    summary="Get UID and incentive from SS58 address",
+)
+async def miner_info(request: MinerInfoRequest) -> MinerInfoResponse:
+    """
+    Given an SS58 address, return its UID and current incentive value 
+    from the metagraph (i.e., METAGRAPH.I).
+    """
+    try:
+        uid = METAGRAPH.hotkeys.index(request.ss58_address)
+        incentive_value = float(METAGRAPH.I[uid])
+    except:
+        uid=-1
+        incentive_value=-1
+
+    return MinerInfoResponse(uid=uid, incentive=incentive_value)
 
 def start_server() -> None:
     """
