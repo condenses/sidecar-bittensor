@@ -105,11 +105,11 @@ async def startup_event() -> None:
                 logger.info("Syncing metagraph...")
                 METAGRAPH.sync()
                 logger.info("Metagraph sync complete")
-                await asyncio.sleep(120)  # Sync every 2 minutes
+                await asyncio.sleep(600)  # Sync every 2 minutes
             except Exception as e:
                 logger.error(f"Error syncing metagraph: {e}")
                 await asyncio.sleep(
-                    30
+                    300
                 )  # Wait 30 seconds before retrying if there's an error
 
     SYNC_TASK = asyncio.create_task(sync_metagraph())
